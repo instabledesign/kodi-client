@@ -48,12 +48,6 @@
         });
     };
 
-    var ObjectToArray = function (object) {
-        return Object.keys(object).map(function (key) {
-            return object[key];
-        })
-    };
-
     var Exception = function(message, code) {
         this.message = message || '';
         this.code = code;
