@@ -5,47 +5,55 @@
     <title>Kodi Client</title>
 </head>
 <body>
-    <h1>Kodi Client simplify the JSONRPC request process</h1>
+<h1>Kodi Client simplify the JSONRPC request process</h1>
 
-    <p>If Response stay empty verify your kodi configuration</p>
+<p>If Response stay empty verify your kodi configuration</p>
 
-    <div><label>Kodi Host: <input type="text" id="host"/></label></div>
+<div><label>Kodi Host: <input type="text" id="host"/></label></div>
 
-    <p>Try to call JSONRPC.Ping</br>Response was: <span id="response1"></span></p>
-    <p>Try to call JSONRPC.Ping with invalid param<br/>Response was: <span id="response2"></span></p>
+<p>Try to call JSONRPC.Ping</br>Response was: <span id="response1"></span></p>
 
-    <script type="text/javascript" src="src/kodi-client.js"></script>
-    <script type="text/javascript">
-        (function() {
-            var time;
-            var hostInput = document.getElementById('host');
-            hostInput.value = window.location.host.split(':')[0];
-            hostInput.addEventListener('input', function(){
-                var that = this;
-                clearTimeout(time);
-                time = setTimeout(function(){
-                    init(that.value);
-                }, 1000);
+<p>Try to call JSONRPC.InvalidMethodName<br/>Response was: <span id="response2"></span></p>
+
+<p>Try to call JSONRPC.Ping with invalid param<br/>Response was: <span id="response3"></span></p>
+
+<p>Try to call JSONRPC.JSONRPC.Introspect with invalid param test<br/>Response was: <span id="response4"></span></p>
+
+<p>Try to call JSONRPC.JSONRPC.Introspect with invalid param type<br/>Response was: <span id="response5"></span></p>
+
+<script type="text/javascript" src="dist/kodi-client.js"></script>
+<script type="text/javascript">
+    (function () {
+        var time;
+        var hostInput = document.getElementById('host');
+        hostInput.value = window.location.host.split(':')[0];
+        hostInput.addEventListener('input', function () {
+            var that = this;
+            clearTimeout(time);
+            time = setTimeout(function () {
+                init(that.value);
+            }, 1000);
+        });
+
+        function init(host) {
+            window.client = new KodiClient({
+                websocket: {
+                    url: 'ws://' + host + ':9090'
+                },
+                ajax: {
+                    open: {
+                        method: "POST",
+                        url: 'ws://' + host + ':8080/jsonrpc'
+                    }
+                }
             });
 
-            function init(host) {
-                var client = new KodiClient({
-                    websocket: {
-                        url: 'ws://' + host + ':9090'
-                    },
-                    ajax:      {
-                        open: {
-                            method: "POST",
-                            url:    'ws://' + host + ':8080/jsonrpc'
-                        }
-                    }
-                });
+            var response1 = document.getElementById('response1');
+            var response2 = document.getElementById('response2');
 
-                var response1 = document.getElementById('response1');
-                var response2 = document.getElementById('response2');
-
+            client.onready.then(function () {
                 client
-                    .request("JSONRPC.Ping")
+                    .send("JSONRPC.Ping")
                     .then(function (data) {
                         response1.innerText = data;
                         response1.style.color = 'green';
@@ -55,19 +63,35 @@
                         response1.style.color = 'red';
                     });
                 client
-                    .request("JSONRPC.Ping", {invalidTestParam: 'foo'})
-                    .then(function (data) {
-                        response2.innerText = data;
-                        response2.style.color = 'green';
-                    })
+                    .send("JSONRPC.InvalidMethodName")
                     .catch(function (data) {
+                            console.log(data);
                         response2.innerText = data;
                         response2.style.color = 'red';
                     });
-            }
+                client
+                    .send("JSONRPC.Ping", {invalidTestParam: 'foo'})
+                    .catch(function (data) {
+                        response3.innerText = data;
+                        response3.style.color = 'red';
+                    });
+                client
+                    .send("JSONRPC.Introspect", {test: 'foo'})
+                    .catch(function (data) {
+                        response4.innerText = data;
+                        response4.style.color = 'red';
+                    });
+                client
+                    .send("JSONRPC.Introspect", {getdescriptions: 'foo'})
+                    .catch(function (data) {
+                        response5.innerText = data;
+                        response5.style.color = 'red';
+                    });
+            });
+        }
 
-            init(hostInput.value);
-        })();
-    </script>
+        init(hostInput.value);
+    })();
+</script>
 </body>
 </html>

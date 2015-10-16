@@ -5,7 +5,7 @@ It use Promise (http://caniuse.com/#feat=promises) to work properly so if you wa
 
 ## Todo 
 
-* Request Validator
+* Request Validator (IN PROGRESS)
 * Handle Error response
 * Simulate Ajax notification
 
