@@ -3,94 +3,232 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>Kodi Client</title>
+    <style>
+        body {
+            font-family: open sans, sans-serif;
+            background-color: #ececec;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            padding-left: 15px;
+            padding-right: 15px;
+            maring-left: auto;
+            maring-right: auto;
+        }
+
+        .row {
+            maring-left: -15px;
+            maring-right: -15px;
+            margin-bottom: 40px;
+        }
+
+        header {
+            background-color: #3f3f3e;
+            color: #fefefe;
+            margin: 0 0 20px 0;
+            height: 40px;
+        }
+
+        input, select {
+            outline: none;
+            border: 1px solid #ced4da;
+            font-size: 16px;
+            background-color: #fefefe;
+            color: #3f3f3e;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        select {
+            -webkit-appearance: none;
+            background-position: right 50%;
+            background-repeat: no-repeat;
+            background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAMCAYAAABSgIzaAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NDZFNDEwNjlGNzFEMTFFMkJEQ0VDRTM1N0RCMzMyMkIiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NDZFNDEwNkFGNzFEMTFFMkJEQ0VDRTM1N0RCMzMyMkIiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo0NkU0MTA2N0Y3MUQxMUUyQkRDRUNFMzU3REIzMzIyQiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo0NkU0MTA2OEY3MUQxMUUyQkRDRUNFMzU3REIzMzIyQiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PuGsgwQAAAA5SURBVHjaYvz//z8DOYCJgUxAf42MQIzTk0D/M+KzkRGPoQSdykiKJrBGpOhgJFYTWNEIiEeAAAMAzNENEOH+do8AAAAASUVORK5CYII=);
+        }
+
+        select#clientrpc-method {
+            border-radius: 5px 0 0 5px;
+            width: 20%;
+            float: left;
+        }
+
+        input#clientrpc-params {
+            border-radius: 0 5px 0 0;
+            width: 80%;
+        }
+
+        input#host {
+            border-right: 0;
+            border-radius: 5px;
+            width: 25%;
+            float: right;
+        }
+
+        input#client-request {
+            border-radius: 5px 5px 0 0;
+            width: 100%;
+        }
+        .error {
+            border: 1px solid red;
+        }
+        pre {
+            background-color: #fff;
+            border: 1px solid #d0d0d0;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        pre.response {
+            background-color: #3f3f3e;
+            color: #fefefe;
+            padding: 8px;
+            border-radius: 0 0 5px 5px;
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
-<h1>Kodi Client simplify the JSONRPC request process</h1>
+<header>
+    <div class="container">
+        <img src="https://kodi.tv/sites/default/themes/kodi/logo-sbs.svg" alt="Logo kodi" width="100">
+        <input id="host" type="text" value="ws://localhost:9090/jsonrpc"/>
+    </div>
+</header>
+<div class="container">
+    <div class="row">
+        <h1>Kodi Client</h1>
+        <p>This library help developer to do JSONRPC call over Kodi using websocket transport or XMLHTTPRequest (Ajax).</p>
+        <p>It come with some feature like:</p>
+        <ul>
+            <li>Kodi client (perform request)</li>
+            <li>Kodi client RPC (simplify API to made call easy)</li>
+            <li>In memory Cache</li>
+            <li>Local storage Cache</li>
+            <li>Cache middleware</li>
+            <li>Logging middleware</li>
+            <li>Web socket transport</li>
+            <li>XMLHTTPRequest transport</li>
+            <li>WIP Validator middleware (to help request debugging)</li>
+            <li>TODO An ORM like to query/update/cache kodi content (movie/song/etc)</li>
+        </ul>
+        <div>ℹ️ Open your browser console to view request info and debugging.</div>
+    </div>
+    <div class="row">
+        <h2>Kodi RPC ready client</h2>
+        <p>The RPC client provide all Kodi namespace with all method (ready to use)</p>
+        <pre><code>let kodi = Kodi.createClientRPC({uri: 'ws://localhost:9090'});
 
-<p>If Response stay empty verify your kodi configuration</p>
+kodi.JSONRPC.Ping().then(data => {
+    console.log(data);
+});</code></pre>
+        <div>
+            <p>Try it:</p>
+            <select id="clientrpc-method">
+                <option>Loading ...</option>
+            </select>
+            <input id="clientrpc-params" type="text" value='' placeholder="enter the params here">
+            <pre id="clientrpc-response" class="response"></pre>
+        </div>
+    </div>
+    <hr />
+    <div class="row">
+        <h2>Kodi client</h2>
+        <p>With the RPC client you just need to</p>
+        <pre><code>let kodi = Kodi.createClient({uri: 'ws://localhost:9090'});
 
-<div><label>Kodi Host: <input type="text" id="host"/></label></div>
-
-<p>Try to call JSONRPC.Ping</br>Response was: <span id="response1"></span></p>
-
-<p>Try to call JSONRPC.InvalidMethodName<br/>Response was: <span id="response2"></span></p>
-
-<p>Try to call JSONRPC.Ping with invalid param<br/>Response was: <span id="response3"></span></p>
-
-<p>Try to call JSONRPC.JSONRPC.Introspect with invalid param test<br/>Response was: <span id="response4"></span></p>
-
-<p>Try to call JSONRPC.JSONRPC.Introspect with invalid param type<br/>Response was: <span id="response5"></span></p>
-
-<script type="text/javascript" src="dist/kodi-client.js"></script>
+kodi.request('JSONRPC.Ping').then(data => {
+    console.log(data);
+});</code></pre>
+        <div>
+            <input id="client-request" type="text" value='{"id": 2, "method": "JSONRPC.Ping", "jsonrpc": "2.0"}'>
+            <pre id="client-response" class="response"></pre>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="dist/kodi.js"></script>
 <script type="text/javascript">
     (function () {
-        var time;
-        var hostInput = document.getElementById('host');
-        hostInput.value = window.location.host.split(':')[0];
-        hostInput.addEventListener('input', function () {
-            var that = this;
-            clearTimeout(time);
-            time = setTimeout(function () {
-                init(that.value);
+        let timeHost;
+        let timeSearch;
+        const host = document.getElementById('host');
+        host.addEventListener('input', () => {
+            clearTimeout(timeHost);
+            timeHost = setTimeout(() => {
+                initKodiClient(host.value);
+                initKodiClientRPC(host.value);
             }, 1000);
         });
 
-        function init(host) {
-            window.client = new KodiClient({
-                websocket: {
-                    url: 'ws://' + host + ':9090'
-                },
-                ajax: {
-                    open: {
-                        method: "POST",
-                        url: 'ws://' + host + ':8080/jsonrpc'
-                    }
-                }
+        function initKodiClient(uri) {
+            var kodiClient = Kodi.createClient({uri});
+
+            const clientRequest = document.getElementById('client-request');
+            const clientResponse = document.getElementById('client-response');
+
+            function doRequest({id, ...options}){
+                kodiClient.send(Kodi.KodiRequest(id, options))
+                    .then(data => {
+                        clientResponse.classList.remove('error');
+                        clientResponse.innerText = JSON.stringify(data);
+                    })
+                    .catch(data => {
+                        clientResponse.innerText = JSON.stringify(data);
+                        clientResponse.classList.add('error');
+                    });
+
+            }
+            clientRequest.addEventListener('input', () => {
+                clearTimeout(timeSearch);
+                timeSearch = setTimeout(doRequest(JSON.parse(clientRequest.value)), 1000);
             });
 
-            var response1 = document.getElementById('response1');
-            var response2 = document.getElementById('response2');
+            doRequest(JSON.parse(clientRequest.value));
+        }
 
-            client.onready.then(function () {
-                client
-                    .send("JSONRPC.Ping")
-                    .then(function (data) {
-                        response1.innerText = data;
-                        response1.style.color = 'green';
+        function initKodiClientRPC(uri) {
+            var kodiClientRPC = Kodi.createClientRPC({uri});
+
+            const clientrpcMethod = document.getElementById('clientrpc-method');
+            const clientrpcParams = document.getElementById('clientrpc-params');
+            const clientrpcResponse = document.getElementById('clientrpc-response');
+
+            function doRequest([namespace, method]) {
+                kodiClientRPC[namespace][method](JSON.parse(clientrpcParams.value||null)||undefined)
+                    .then(data => {
+                        clientrpcResponse.classList.remove('error');
+                        clientrpcResponse.innerText = JSON.stringify(data);
                     })
-                    .catch(function (data) {
-                        response1.innerText = data;
-                        response1.style.color = 'red';
+                    .catch(data => {
+                        clientrpcResponse.innerText = JSON.stringify(data);
+                        clientrpcResponse.classList.add('error');
                     });
-                client
-                    .send("JSONRPC.InvalidMethodName")
-                    .catch(function (data) {
-                            console.log(data);
-                        response2.innerText = data;
-                        response2.style.color = 'red';
-                    });
-                client
-                    .send("JSONRPC.Ping", {invalidTestParam: 'foo'})
-                    .catch(function (data) {
-                        response3.innerText = data;
-                        response3.style.color = 'red';
-                    });
-                client
-                    .send("JSONRPC.Introspect", {test: 'foo'})
-                    .catch(function (data) {
-                        response4.innerText = data;
-                        response4.style.color = 'red';
-                    });
-                client
-                    .send("JSONRPC.Introspect", {getdescriptions: 'foo'})
-                    .catch(function (data) {
-                        response5.innerText = data;
-                        response5.style.color = 'red';
-                    });
+            }
+
+            kodiClientRPC.onReady.then(([_, schema]) => {
+                clientrpcMethod.innerHTML = '';
+                Object.keys(schema.methods).map(method => {
+                    let option = document.createElement('option');
+                    option.text = method;
+                    if ('JSONRPC.Ping' === method) {
+                        option.selected = true;
+
+                    }
+                    clientrpcMethod.add(option);
+                });
+
+                clientrpcMethod.addEventListener('change', () => doRequest(clientrpcMethod.value.split('.')));
+                doRequest(clientrpcMethod.value.split('.'));
+            });
+            clientrpcParams.addEventListener('input', () => {
+                clearTimeout(timeSearch);
+                timeSearch = setTimeout(doRequest(clientrpcMethod.value.split('.')), 1000);
             });
         }
 
-        init(hostInput.value);
+        initKodiClient(host.value);
+        initKodiClientRPC(host.value);
     })();
 </script>
 </body>
