@@ -18,6 +18,8 @@ It come with some feature like:
 
 ## RPC client
 
+### Query kodi
+
 The RPC client provide all Kodi namespace with all method in it.
 
 This client has a `onReady` promise witch is resolved (with the client and the schema) when kodi introspection was done
@@ -54,7 +56,24 @@ kodi.onReady.then(() => {
 });
 ```
 
+###To listen kodi event
+
+Kodi emit some notification event when it append something on kodi
+
+You can attach a listener to kodi notification
+
+```js
+let kodi = Kodi.createClientRPC({uri: 'ws://localhost:9090'});
+kodi.onReady.then(() => {
+    kodi.Player.OnResume(data => {
+        console.log(data);
+    });
+});
+```
+
 ## Simple client
+
+### Query kodi
 
 The client provide only `request` and `send` method.
 
@@ -73,6 +92,20 @@ to call method with required params you can do like that
 let kodi = Kodi.createClient({uri: 'ws://localhost:9090'});
 
 kodi.request('JSONRPC.Introspect', {getdescriptions: true, getmetadata: true, filterbytransport: true}).then(data => {
+    console.log(data);
+});
+```
+
+###To listen kodi event
+
+Kodi emit some notification event when it append something on kodi
+
+You can attach a listener to kodi notification
+
+```js
+let kodi = Kodi.createClient({uri: 'ws://localhost:9090'});
+
+kodi.addNotificationListener(data => {
     console.log(data);
 });
 ```

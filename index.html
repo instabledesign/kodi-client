@@ -188,7 +188,7 @@ kodi.request('JSONRPC.Ping').then(data => {
         }
 
         function initKodiClientRPC(uri) {
-            let kodiClientRPC = Kodi.createClientRPC({uri, middlewares:[]});
+            let kodiClientRPC = Kodi.createClientRPC({uri});
 
             const clientrpcMethod = document.getElementById('clientrpc-method');
             const clientrpcParams = document.getElementById('clientrpc-params');
