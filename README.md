@@ -12,9 +12,10 @@ It come with some feature like:
 - Logging middleware
 - Web socket transport
 - XMLHTTPRequest transport
+- Kodi notification message (via event emitter)
+- 🚧 TODO Emulate the notification with XMLHTTPRequest transport
 - 🚧 WIP Validator middleware (to help request debugging)
 - 🚧 TODO An ORM like to query/update/cache kodi content (movie/song/etc)
-- 🚧 TODO reactivate the Kodi notification message (via event emitter or observable pattern)
 
 ## RPC client
 
@@ -56,7 +57,7 @@ kodi.onReady.then(() => {
 });
 ```
 
-###To listen kodi event
+### To listen kodi event
 
 Kodi emit some notification event when it append something on kodi
 
@@ -96,7 +97,7 @@ kodi.request('JSONRPC.Introspect', {getdescriptions: true, getmetadata: true, fi
 });
 ```
 
-###To listen kodi event
+### To listen kodi event
 
 Kodi emit some notification event when it append something on kodi
 
