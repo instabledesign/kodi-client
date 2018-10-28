@@ -9,8 +9,8 @@ function KodiClientRPC(kodiClient) {
         throw new TypeError('It must be a KodiClient.');
     }
 
-    let listeners = {};
     let schema = null;
+    let listeners = {};
 
     this.onReady = new Promise((resolve, reject) => {
         kodiClient.request('JSONRPC.Introspect', {"getdescriptions": true, "getmetadata": true, "filterbytransport": true}).then(data => {
@@ -26,7 +26,9 @@ function KodiClientRPC(kodiClient) {
                     return kodiClient.request(name, params, options).then(response => response.result);
                 };
             }
+
             const notifications = schema.notifications;
+
             for (const name in notifications) {
                 let [namespace, notification] = name.split('.');
                 if (!this[namespace]) {
@@ -37,7 +39,15 @@ function KodiClientRPC(kodiClient) {
                     listeners[`${namespace}.${notification}`].push(callback);
                 };
             }
+
+            kodiClient.addNotificationListener((notification, messageEvent) => {
+                if (listeners.hasOwnProperty(notification.method)) {
+                    listeners[notification.method].forEach(callback => callback(notification.params, messageEvent));
+                }
+            });
+
             resolve([this, schema]);
+
         }).catch(reject);
     });
 }

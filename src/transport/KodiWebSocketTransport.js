@@ -7,7 +7,7 @@ function KodiWebSocketTransport(uri) {
     }
 
     let deferreds = {};
-    // let notifiables = [];
+    let listeners = [];
     let websocket;
     let onReady = this.onReady = new Promise((resolve, reject) => {
         websocket = new WebSocket(uri);
@@ -29,8 +29,8 @@ function KodiWebSocketTransport(uri) {
                     return;
                 }
 
-                // const notification = new KodiNotification(messageData);
-                // notifiables.forEach(callback => callback(notification, messageEvent));
+                const notification = new KodiNotification(messageData);
+                listeners.forEach(callback => callback(notification, messageEvent));
             };
             resolve(event);
         };
@@ -59,13 +59,17 @@ function KodiWebSocketTransport(uri) {
         return promise;
     };
 
-    // KodiWebSocketTransport.prototype.addNotifiable = function(notifiable) {
-    //     const index = this.notifiables.push(notifiable);
-    //
-    //     return () => {
-    //         delete this.notifiables[index];
-    //     };
-    // };
+    KodiWebSocketTransport.prototype.addNotificationListener = function(listener) {
+        const index = listeners.push(listener);
+
+        return () => {
+            delete listeners[index];
+        };
+    };
+
+    KodiWebSocketTransport.prototype.removeNotificationListener = function(listener) {
+        listeners = listeners.filter(currentListener => currentListener === listener);
+    };
 }
 
 export default KodiWebSocketTransport;

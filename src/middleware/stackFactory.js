@@ -1,4 +1,4 @@
-export default (middlewares, handler) => middlewares.reverse().reduce(
+export default (handler, middlewares) => middlewares.reverse().reduce(
     (prev, cur) => null === prev ? cur : cur(prev),
     handler
 );

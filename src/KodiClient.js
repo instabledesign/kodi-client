@@ -1,9 +1,11 @@
 import KodiRequest from './KodiRequest.js';
 
-function KodiClient(handler) {
+function KodiClient(handler, notifier) {
     if (!(this instanceof KodiClient)) {
-        return new KodiClient(handler);
+        return new KodiClient(handler, notifier);
     }
+
+    let listeners = [];
 
     // default factory
     let factory = (() => {
@@ -17,9 +19,25 @@ function KodiClient(handler) {
         return this;
     };
 
+    notifier((notification, messageEvent) => {
+        listeners.forEach(callback => callback(notification, messageEvent));
+    });
+
     KodiClient.prototype.send = (request, options) => handler.call(handler, request, options);
 
     KodiClient.prototype.request = (method, params, options) => this.send(factory.call(factory, {method, params}), options);
+
+    KodiClient.prototype.addNotificationListener = function(listener) {
+        const index = listeners.push(listener);
+
+        return () => {
+            delete listeners[index];
+        };
+    };
+
+    KodiClient.prototype.removeNotificationListener = function(listener) {
+        listeners = listeners.filter(currentListener => currentListener === listener);
+    };
 }
 
 export default KodiClient;

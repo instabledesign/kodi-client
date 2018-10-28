@@ -162,7 +162,7 @@ kodi.request('JSONRPC.Ping').then(data => {
         });
 
         function initKodiClient(uri) {
-            var kodiClient = Kodi.createClient({uri});
+            let kodiClient = Kodi.createClient({uri});
 
             const clientRequest = document.getElementById('client-request');
             const clientResponse = document.getElementById('client-response');
@@ -188,7 +188,7 @@ kodi.request('JSONRPC.Ping').then(data => {
         }
 
         function initKodiClientRPC(uri) {
-            var kodiClientRPC = Kodi.createClientRPC({uri});
+            let kodiClientRPC = Kodi.createClientRPC({uri, middlewares:[]});
 
             const clientrpcMethod = document.getElementById('clientrpc-method');
             const clientrpcParams = document.getElementById('clientrpc-params');
@@ -217,7 +217,6 @@ kodi.request('JSONRPC.Ping').then(data => {
                     }
                     clientrpcMethod.add(option);
                 });
-
                 clientrpcMethod.addEventListener('change', () => doRequest(clientrpcMethod.value.split('.')));
                 doRequest(clientrpcMethod.value.split('.'));
             });
