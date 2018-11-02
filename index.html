@@ -147,7 +147,7 @@ kodi.request('JSONRPC.Ping').then(data => {
         </div>
     </div>
 </div>
-<script type="text/javascript" src="dist/kodi.js"></script>
+<script type="text/javascript" src="dist/kodi.umd.js"></script>
 <script type="text/javascript">
     (function () {
         let timeHost;
@@ -168,7 +168,7 @@ kodi.request('JSONRPC.Ping').then(data => {
             const clientResponse = document.getElementById('client-response');
 
             function doRequest({id, ...options}){
-                kodiClient.send(Kodi.KodiRequest(id, options))
+                kodiClient.send(Kodi.Request(id, options))
                     .then(data => {
                         clientResponse.classList.remove('error');
                         clientResponse.innerText = JSON.stringify(data);

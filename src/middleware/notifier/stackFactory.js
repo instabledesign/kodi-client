@@ -1,6 +1,6 @@
-export default (notifier, middlewares) => callback => notifier(
+export default (notifier, middlewares) => handler => notifier(
     middlewares.reverse().reduce(
         (prev, cur) => null === prev ? cur : cur(prev),
-        callback
+        handler
     )
 );

@@ -243,16 +243,16 @@
         KodiXMLHttpTransport.prototype.addNotifiable = function (request, options) {};
     }
 
-    var LoggingNotificationMiddleware = callback => (notification, messageEvent) => {
+    var LoggingNotificationMiddleware = handler => (notification, messageEvent) => {
         console.log('Notification %o.', notification, messageEvent);
 
-        callback(notification, messageEvent);
+        handler(notification, messageEvent);
     };
 
-    var stackNotification = (notifier, middlewares) => callback => notifier(
+    var stackNotification = (notifier, middlewares) => handler => notifier(
         middlewares.reverse().reduce(
             (prev, cur) => null === prev ? cur : cur(prev),
-            callback
+            handler
         )
     );
 
@@ -306,20 +306,20 @@
         handler
     );
 
-    function InMemoryCache(restoreData) {
-        if (!(this instanceof InMemoryCache)) {
-            return new InMemoryCache(restoreData);
+    function InMemory(restoreData) {
+        if (!(this instanceof InMemory)) {
+            return new InMemory(restoreData);
         }
 
         let data = restoreData || {};
 
-        InMemoryCache.prototype.set = (key, value) => data[key] = value;
+        InMemory.prototype.set = (key, value) => data[key] = value;
 
-        InMemoryCache.prototype.get = key => data[key];
+        InMemory.prototype.get = key => data[key];
 
-        InMemoryCache.prototype.delete = key => delete data[key];
+        InMemory.prototype.delete = key => delete data[key];
 
-        InMemoryCache.prototype.clear = () => data = {};
+        InMemory.prototype.clear = () => data = {};
     }
 
     function LocalStorage(prefix) {
@@ -367,7 +367,7 @@
     }
 
     function getCache(options) {
-        return options.cache || window.localStorage ? new LocalStorage('request_') : new InMemoryCache();
+        return options.cache || window.localStorage ? new LocalStorage('request_') : new InMemory();
     }
 
     function getTransport(options) {
@@ -411,20 +411,22 @@
 
     exports.createClient = createClient;
     exports.createClientRPC = createClientRPC;
-    exports.KodiClientRPC = KodiClientRPC;
-    exports.KodiClient = KodiClient;
-    exports.KodiRequest = KodiRequest;
-    exports.KodiResponse = KodiResponse;
-    exports.KodiWebSocketTransport = KodiWebSocketTransport;
-    exports.KodiXMLHttpTransport = KodiXMLHttpTransport;
-    exports.InMemory = InMemoryCache;
+    exports.ClientRPC = KodiClientRPC;
+    exports.Client = KodiClient;
+    exports.Request = KodiRequest;
+    exports.Response = KodiResponse;
+    exports.WebSocketTransport = KodiWebSocketTransport;
+    exports.XMLHttpTransport = KodiXMLHttpTransport;
+    exports.InMemory = InMemory;
     exports.LocalStorage = LocalStorage;
     exports.withTTL = withTTL;
-    exports.cache = CacheMiddleware;
-    exports.logging = LoggingMiddleware;
-    exports.stackFactory = stack;
+    exports.notificationMiddlewareLogging = LoggingNotificationMiddleware;
+    exports.notificationStackMiddleware = stackNotification;
+    exports.requestMiddlewareCache = CacheMiddleware;
+    exports.requestMiddlewareLogging = LoggingMiddleware;
+    exports.requestReuestMiddleware = stack;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
-//# sourceMappingURL=kodi.js.map
+//# sourceMappingURL=kodi.umd.js.map

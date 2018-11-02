@@ -1,17 +1,17 @@
-function InMemoryCache(restoreData) {
-    if (!(this instanceof InMemoryCache)) {
-        return new InMemoryCache(restoreData);
+function InMemory(restoreData) {
+    if (!(this instanceof InMemory)) {
+        return new InMemory(restoreData);
     }
 
     let data = restoreData || {};
 
-    InMemoryCache.prototype.set = (key, value) => data[key] = value;
+    InMemory.prototype.set = (key, value) => data[key] = value;
 
-    InMemoryCache.prototype.get = key => data[key];
+    InMemory.prototype.get = key => data[key];
 
-    InMemoryCache.prototype.delete = key => delete data[key];
+    InMemory.prototype.delete = key => delete data[key];
 
-    InMemoryCache.prototype.clear = () => data = {};
+    InMemory.prototype.clear = () => data = {};
 }
 
-export default InMemoryCache;
+export default InMemory;

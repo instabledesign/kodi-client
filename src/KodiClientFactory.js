@@ -1,18 +1,22 @@
 import KodiClient from './KodiClient.js';
 import KodiClientRPC from './KodiClientRPC.js';
+
 import KodiWebSocketTransport from './transport/KodiWebSocketTransport.js';
 import KodiXMLHttpTransport from './transport/KodiXMLHttpTransport.js';
-import LoggingNotificationMiddleware from './notificationMiddleware/logging.js';
-import stackNotification from './notificationMiddleware/stackFactory.js';
-import LoggingMiddleware from './middleware/logging.js';
-import CacheMiddleware from './middleware/cache.js';
-import stack from './middleware/stackFactory.js';
-import InMemoryCache from './cache/InMemory.js';
-import LocalStorageCache from './cache/LocalStorage.js';
+
+import LoggingNotificationMiddleware from './middleware/notifier/logging.js';
+import stackNotification from './middleware/notifier/stackFactory.js';
+
+import LoggingMiddleware from './middleware/query/logging.js';
+import CacheMiddleware from './middleware/query/cache.js';
+import stack from './middleware/query/stackFactory.js';
+
+import InMemory from './cache/InMemory.js';
+import LocalStorage from './cache/LocalStorage.js';
 import withTTL from './cache/withTTL.js';
 
 function getCache(options) {
-    return options.cache || window.localStorage ? new LocalStorageCache('request_') : new InMemoryCache();
+    return options.cache || window.localStorage ? new LocalStorage('request_') : new InMemory();
 }
 
 function getTransport(options) {
@@ -45,7 +49,7 @@ export function createClientRPC(options) {
     return new KodiClientRPC(createClient(options));
 }
 
-export default function createClient(options) {
+export function createClient(options) {
     const transport = getTransport(options);
 
     return KodiClient(
