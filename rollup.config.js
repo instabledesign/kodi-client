@@ -1,5 +1,5 @@
-import resolve from 'rollup-plugin-node-resolve';
-import commonjs from 'rollup-plugin-commonjs';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
 
 export default [
     {
@@ -23,13 +23,4 @@ export default [
             {file: 'dist/kodi.esm.js', format: 'es'}
         ]
     }
-    // {
-    //     input: 'src/index2.js',
-    //     output: {
-    //         file: 'dist/kodi2.js',
-    //         format: 'umd',
-    //         name: 'Kodi',
-    //         sourcemap: true
-    //     },
-    // },
 ];

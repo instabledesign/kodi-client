@@ -12,6 +12,7 @@ function KodiClientRPC(kodiClient) {
     let schema = null;
     let listeners = {};
 
+    this.getClient = () => kodiClient;
     this.onReady = new Promise((resolve, reject) => {
         kodiClient.request('JSONRPC.Introspect', {"getdescriptions": true, "getmetadata": true, "filterbytransport": true}).then(data => {
             schema = data.result;

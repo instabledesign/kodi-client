@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Kodi Client Debugger</title>
+    <style>
+        body {
+            font-family: open sans, sans-serif;
+            background-color: #ececec;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            padding-left: 15px;
+            padding-right: 15px;
+            maring-left: auto;
+            maring-right: auto;
+        }
+
+        .row {
+            maring-left: -15px;
+            maring-right: -15px;
+            margin-bottom: 40px;
+        }
+
+        header {
+            background-color: #3f3f3e;
+            color: #fefefe;
+            margin: 0 0 20px 0;
+            height: 40px;
+        }
+
+        input, select {
+            outline: none;
+            border: 1px solid #ced4da;
+            font-size: 16px;
+            background-color: #fefefe;
+            color: #3f3f3e;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        select {
+            -webkit-appearance: none;
+            background-position: right 50%;
+            background-repeat: no-repeat;
+            background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAMCAYAAABSgIzaAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NDZFNDEwNjlGNzFEMTFFMkJEQ0VDRTM1N0RCMzMyMkIiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NDZFNDEwNkFGNzFEMTFFMkJEQ0VDRTM1N0RCMzMyMkIiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo0NkU0MTA2N0Y3MUQxMUUyQkRDRUNFMzU3REIzMzIyQiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo0NkU0MTA2OEY3MUQxMUUyQkRDRUNFMzU3REIzMzIyQiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PuGsgwQAAAA5SURBVHjaYvz//z8DOYCJgUxAf42MQIzTk0D/M+KzkRGPoQSdykiKJrBGpOhgJFYTWNEIiEeAAAMAzNENEOH+do8AAAAASUVORK5CYII=);
+        }
+
+        select#clientrpc-method {
+            border-radius: 5px 0 0 5px;
+            width: 20%;
+            float: left;
+        }
+
+        input#clientrpc-params {
+            border-radius: 0 5px 0 0;
+            width: 80%;
+        }
+
+        input#host {
+            border-right: 0;
+            border-radius: 5px;
+            width: 25%;
+            float: right;
+        }
+
+        input#client-request {
+            border-radius: 5px 5px 0 0;
+            width: 100%;
+        }
+
+        .error {
+            border: 1px solid red;
+        }
+
+        pre {
+            background-color: #fff;
+            border: 1px solid #d0d0d0;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        pre.response {
+            background-color: #3f3f3e;
+            color: #fefefe;
+            padding: 8px 8px 8px 21px;
+            border-radius: 0 0 5px 5px;
+            margin: 0;
+        }
+
+        .json-viewer {
+            color: #fff;
+            padding-left: 20px;
+        }
+
+        .json-viewer ul {
+            list-style-type: none;
+            margin: 0;
+            margin: 0 0 0 1px;
+            border-left: 1px dotted #ccc;
+            padding-left: 2em;
+        }
+
+        .json-viewer .hide {
+            display: none;
+        }
+
+        .json-viewer ul li .type-string,
+        .json-viewer ul li .type-date {
+            color: #0fdb00;
+        }
+
+        .json-viewer ul li .type-boolean {
+            color: #00bcd4;
+            font-weight: bold;
+        }
+
+        .json-viewer ul li .type-number {
+            color: #ffc107;
+        }
+
+        .json-viewer ul li .type-null {
+            color: red;
+        }
+
+        .json-viewer a.list-link {
+            color: #fff;
+            text-decoration: none;
+            position: relative;
+        }
+
+        .json-viewer a.list-link:before {
+            color: #aaa;
+            content: "\25BC";
+            position: absolute;
+            display: inline-block;
+            width: 1em;
+            left: -1em;
+        }
+
+        .json-viewer a.list-link.collapsed:before {
+            content: "\25B6";
+        }
+
+        .json-viewer a.list-link.empty:before {
+            content: "";
+        }
+
+        .json-viewer .items-ph {
+            color: #aaa;
+            padding: 0 1em;
+        }
+
+        .json-viewer .items-ph:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+        <img src="https://kodi.tv/sites/default/themes/kodi/logo-sbs.svg" alt="Logo kodi" width="100">
+        <input id="host" type="text" value="ws://localhost:9090/"/>
+    </div>
+</header>
+<div class="container">
+    <div class="row">
+        <h2>Kodi RPC ready client</h2>
+        <p>The RPC client provide all Kodi namespace with all method (ready to use)</p>
+        <pre><code>let kodi = Kodi.createClientRPC({uri: 'ws://localhost:9090'});
+
+kodi.JSONRPC.Ping().then(data => {
+    console.log(data);
+});</code></pre>
+        <div>
+            <p>Try it:</p>
+            <select id="clientrpc-method">
+                <option>Loading ...</option>
+            </select>
+            <input id="clientrpc-params" type="text" value='' placeholder="enter the params here">
+            <div id="clientrpc-response"></div>
+        </div>
+    </div>
+    <hr/>
+    <div class="row">
+        <h2>Kodi client</h2>
+        <p>With the RPC client you just need to</p>
+        <pre><code>let kodi = Kodi.createClient({uri: 'ws://localhost:9090'});
+
+kodi.request('JSONRPC.Ping').then(data => {
+    console.log(data);
+});</code></pre>
+        <div>
+            <input id="client-request" type="text" value='{"id": 2, "method": "JSONRPC.Ping", "jsonrpc": "2.0"}'>
+            <div id="client-response"></div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="dist/kodi.umd.js"></script>
+<script type="text/javascript">
+    /**
+     * JSONViewer - by Roman Makudera 2016 (c) MIT licence.
+     */
+    let JSONViewer = (function () {
+        let JSONViewer = function () {
+            this._dom = {};
+            this._dom.container = document.createElement("pre");
+            this._dom.container.classList.add("json-viewer", "response");
+        };
+
+        /**
+         * Visualise JSON object.
+         *
+         * @param {Object|Array} json Input value
+         * @param {Number} [maxLvl] Process only to max level, where 0..n, -1 unlimited
+         * @param {Number} [colAt] Collapse at level, where 0..n, -1 unlimited
+         */
+        JSONViewer.prototype.showJSON = function (json, maxLvl, colAt) {
+            maxLvl = typeof maxLvl === "number" ? maxLvl : -1; // max level
+            colAt = typeof colAt === "number" ? colAt : -1; // collapse at
+
+            let walkEl = this._walk(json, maxLvl, colAt, 0);
+
+            this._dom.container.innerHTML = "";
+            this._dom.container.appendChild(walkEl);
+        };
+
+        /**
+         * Get container with pre object - this container is used for visualise JSON data.
+         *
+         * @return {Element}
+         */
+        JSONViewer.prototype.getContainer = function () {
+            return this._dom.container;
+        };
+
+        /**
+         * Recursive walk for input value.
+         *
+         * @param {Object|Array} value Input value
+         * @param {Number} maxLvl Process only to max level, where 0..n, -1 unlimited
+         * @param {Number} colAt Collapse at level, where 0..n, -1 unlimited
+         * @param {Number} lvl Current level
+         */
+        JSONViewer.prototype._walk = function (value, maxLvl, colAt, lvl) {
+            let frag = document.createDocumentFragment();
+            let isMaxLvl = maxLvl >= 0 && lvl >= maxLvl;
+            let isCollapse = colAt >= 0 && lvl >= colAt;
+
+            switch (typeof value) {
+                case "object":
+                    if (value) {
+                        let isArray = Array.isArray(value);
+                        let items = isArray ? value : Object.keys(value);
+
+                        if (lvl === 0) {
+                            // root level
+                            let rootCount = this._createItemsCount(items.length);
+                            // hide/show
+                            let rootLink = this._createLink(isArray ? "[" : "{");
+
+                            if (items.length) {
+                                rootLink.addEventListener("click", function () {
+                                    if (isMaxLvl) return;
+
+                                    rootLink.classList.toggle("collapsed");
+                                    rootCount.classList.toggle("hide");
+
+                                    // main list
+                                    this._dom.container.querySelector("ul").classList.toggle("hide");
+                                }.bind(this));
+
+                                if (isCollapse) {
+                                    rootLink.classList.add("collapsed");
+                                    rootCount.classList.remove("hide");
+                                }
+                            } else {
+                                rootLink.classList.add("empty");
+                            }
+
+                            rootLink.appendChild(rootCount);
+                            frag.appendChild(rootLink);
+                        }
+
+                        if (items.length && !isMaxLvl) {
+                            let len = items.length - 1;
+                            let ulList = document.createElement("ul");
+                            ulList.setAttribute("data-level", lvl);
+                            ulList.classList.add("type-" + (isArray ? "array" : "object"));
+
+                            items.forEach(function (key, ind) {
+                                let item = isArray ? key : value[key];
+                                let li = document.createElement("li");
+
+                                if (typeof item === "object") {
+                                    let isEmpty = false;
+
+                                    // null && date
+                                    if (!item || item instanceof Date) {
+                                        li.appendChild(document.createTextNode(isArray ? "" : key + ": "));
+                                        li.appendChild(this._createSimple(item ? item : null));
+                                    }
+                                    // array & object
+                                    else {
+                                        let itemIsArray = Array.isArray(item);
+                                        let itemLen = itemIsArray ? item.length : Object.keys(item).length;
+
+                                        // empty
+                                        if (!itemLen) {
+                                            li.appendChild(document.createTextNode(key + ": " + (itemIsArray ? "[]" : "{}")));
+                                        } else {
+                                            // 1+ items
+                                            let itemTitle = (typeof key === "string" ? key + ": " : "") + (itemIsArray ? "[" : "{");
+                                            let itemLink = this._createLink(itemTitle);
+                                            let itemsCount = this._createItemsCount(itemLen);
+
+                                            // maxLvl - only text, no link
+                                            if (maxLvl >= 0 && lvl + 1 >= maxLvl) {
+                                                li.appendChild(document.createTextNode(itemTitle));
+                                            } else {
+                                                itemLink.appendChild(itemsCount);
+                                                li.appendChild(itemLink);
+                                            }
+
+                                            li.appendChild(this._walk(item, maxLvl, colAt, lvl + 1));
+                                            li.appendChild(document.createTextNode(itemIsArray ? "]" : "}"));
+
+                                            let list = li.querySelector("ul");
+                                            let itemLinkCb = function () {
+                                                itemLink.classList.toggle("collapsed");
+                                                itemsCount.classList.toggle("hide");
+                                                list.classList.toggle("hide");
+                                            };
+
+                                            // hide/show
+                                            itemLink.addEventListener("click", itemLinkCb);
+
+                                            // collapse lower level
+                                            if (colAt >= 0 && lvl + 1 >= colAt) {
+                                                itemLinkCb();
+                                            }
+                                        }
+                                    }
+                                }
+                                // simple values
+                                else {
+                                    // object keys with key:
+                                    if (!isArray) {
+                                        li.appendChild(document.createTextNode(key + ": "));
+                                    }
+
+                                    // recursive
+                                    li.appendChild(this._walk(item, maxLvl, colAt, lvl + 1));
+                                }
+
+                                // add comma to the end
+                                if (ind < len) {
+                                    li.appendChild(document.createTextNode(","));
+                                }
+
+                                ulList.appendChild(li);
+                            }, this);
+
+                            frag.appendChild(ulList);
+                        } else if (items.length && isMaxLvl) {
+                            let itemsCount = this._createItemsCount(items.length);
+                            itemsCount.classList.remove("hide");
+
+                            frag.appendChild(itemsCount);
+                        }
+
+                        if (lvl === 0) {
+                            // empty root
+                            if (!items.length) {
+                                let itemsCount = this._createItemsCount(0);
+                                itemsCount.classList.remove("hide");
+
+                                frag.appendChild(itemsCount);
+                            }
+
+                            // root cover
+                            frag.appendChild(document.createTextNode(isArray ? "]" : "}"));
+
+                            // collapse
+                            if (isCollapse) {
+                                frag.querySelector("ul").classList.add("hide");
+                            }
+                        }
+                        break;
+                    }
+
+                default:
+                    // simple values
+                    frag.appendChild(this._createSimple(value));
+                    break;
+            }
+
+            return frag;
+        };
+
+        /**
+         * Create simple value (no object|array).
+         *
+         * @param  {Number|String|null|undefined|Date} value Input value
+         * @return {Element}
+         */
+        JSONViewer.prototype._createSimple = function (value) {
+            let spanEl = document.createElement("span");
+            let type = typeof value;
+            let txt = value;
+
+            if (type === "string") {
+                txt = '"' + value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + '"';
+            } else if (value === null) {
+                type = "null";
+                txt = "null";
+            } else if (value === undefined) {
+                txt = "undefined";
+            } else if (value instanceof Date) {
+                type = "date";
+                txt = value.toString();
+            }
+
+            spanEl.classList.add("type-" + type);
+            spanEl.innerHTML = txt;
+
+            return spanEl;
+        };
+
+        /**
+         * Create items count element.
+         *
+         * @param  {Number} count Items count
+         * @return {Element}
+         */
+        JSONViewer.prototype._createItemsCount = function (count) {
+            let itemsCount = document.createElement("span");
+            itemsCount.classList.add("items-ph");
+            itemsCount.classList.add("hide");
+            itemsCount.innerHTML = this._getItemsTitle(count);
+
+            return itemsCount;
+        };
+
+        /**
+         * Create clickable link.
+         *
+         * @param  {String} title Link title
+         * @return {Element}
+         */
+        JSONViewer.prototype._createLink = function (title) {
+            let linkEl = document.createElement("a");
+            linkEl.classList.add("list-link");
+            linkEl.href = "javascript:void(0)";
+            linkEl.innerHTML = title || "";
+
+            return linkEl;
+        };
+
+        /**
+         * Get correct item|s title for count.
+         *
+         * @param  {Number} count Items count
+         * @return {String}
+         */
+        JSONViewer.prototype._getItemsTitle = function (count) {
+            let itemsTxt = count > 1 || count === 0 ? "items" : "item";
+
+            return (count + " " + itemsTxt);
+        };
+
+        return JSONViewer;
+    })();
+</script>
+<script type="text/javascript">
+    (function () {
+        let timeHost;
+        let timeSearch;
+        const host = document.getElementById('host');
+        host.addEventListener('input', () => {
+            clearTimeout(timeHost);
+            timeHost = setTimeout(() => {
+                initKodiClient(host.value);
+                initKodiClientRPC(host.value);
+            }, 1000);
+        });
+
+        function initKodiClient(uri) {
+            let kodiClient = Kodi.createClient({uri});
+
+            const clientRequest = document.getElementById('client-request');
+            const clientResponse = document.getElementById('client-response');
+
+            let jsonViewer = new JSONViewer();
+            clientResponse.appendChild(jsonViewer.getContainer());
+
+            function doRequest({id, ...options}) {
+                let r = Kodi.Request(id, options);
+                console.log(r);
+                kodiClient.send(r)
+                    .then(data => {
+                        clientResponse.classList.remove('error');
+                        // clientResponse.innerText = JSON.stringify(data);
+                        jsonViewer.showJSON(JSON.stringify(data), 10, 2);
+
+                    })
+                    .catch(data => {
+                        clientResponse.classList.add('error');
+                        // clientResponse.innerText = JSON.stringify(data);
+                        jsonViewer.showJSON(JSON.stringify(data), 10, 2);
+                    });
+            }
+
+            clientRequest.addEventListener('input', () => {
+                clearTimeout(timeSearch);
+                timeSearch = setTimeout(doRequest(JSON.parse(clientRequest.value)), 1000);
+            });
+
+            doRequest(JSON.parse(clientRequest.value));
+        }
+
+        function initKodiClientRPC(uri) {
+            let kodiClientRPC = Kodi.createClientRPC({uri});
+
+            const clientrpcMethod = document.getElementById('clientrpc-method');
+            const clientrpcParams = document.getElementById('clientrpc-params');
+            const clientrpcResponse = document.getElementById('clientrpc-response');
+
+            let rpcJsonViewer = new JSONViewer();
+
+            clientrpcResponse.appendChild(rpcJsonViewer.getContainer());
+
+            function doRequest([namespace, method]) {
+                kodiClientRPC[namespace][method](JSON.parse(clientrpcParams.value || null) || undefined)
+                    .then(data => {
+                        console.log(data);
+                        clientrpcResponse.classList.remove('error');
+                        // clientrpcResponse.innerText = JSON.stringify(data);
+                        rpcJsonViewer.showJSON(data, -1, 2);
+                    })
+                    .catch(data => {
+                        console.log(data);
+                        clientrpcResponse.classList.add('error');
+                        // clientrpcResponse.innerText = JSON.stringify(data);
+                        rpcJsonViewer.showJSON(data, 10, 2);
+                    });
+            }
+
+            kodiClientRPC.onReady.then(([_, schema]) => {
+                clientrpcMethod.innerHTML = '';
+                Object.keys(schema.methods).map(method => {
+                    let option = document.createElement('option');
+                    option.text = method;
+                    if ('JSONRPC.Ping' === method) {
+                        option.selected = true;
+
+                    }
+                    clientrpcMethod.add(option);
+                });
+                clientrpcMethod.addEventListener('change', () => doRequest(clientrpcMethod.value.split('.')));
+                doRequest(clientrpcMethod.value.split('.'));
+            });
+            clientrpcParams.addEventListener('input', () => {
+                clearTimeout(timeSearch);
+                timeSearch = setTimeout(doRequest(clientrpcMethod.value.split('.')), 1000);
+            });
+        }
+
+        initKodiClient(host.value);
+        initKodiClientRPC(host.value);
+    })();
+</script>
+</body>
+</html>

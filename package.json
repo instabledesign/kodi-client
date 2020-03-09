@@ -11,10 +11,11 @@
     "test": "jasmine"
   },
   "dependencies": {
-    "rollup": "^0.66.6",
-    "rollup-watch": "^4.3.1",
-    "rollup-plugin-commonjs": "^9.1.0",
-    "rollup-plugin-node-resolve": "^3.0.0"
+    "jsoneditor": "^8.5.3"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "rollup": "^1.31.1",
+    "@rollup/plugin-commonjs": "^11.0.2",
+    "@rollup/plugin-node-resolve": "^7.1.1"
+  }
 }

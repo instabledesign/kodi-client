@@ -157,7 +157,7 @@ kodi.request('JSONRPC.Ping').then(data => {
             clearTimeout(timeHost);
             timeHost = setTimeout(() => {
                 initKodiClient(host.value);
-                initKodiClientRPC(host.value);
+                // initKodiClientRPC(host.value);
             }, 1000);
         });
 

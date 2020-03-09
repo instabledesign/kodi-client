@@ -1,0 +1,257 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>JSONEditor | JSON schema validation</title>
+
+    <link href="node_modules/jsoneditor/dist/jsoneditor.css" rel="stylesheet" type="text/css">
+    <script src="node_modules/jsoneditor/dist/jsoneditor.js"></script>
+
+    <style type="text/css">
+        body {
+            font: 11pt sans-serif;
+            margin: 0;
+            padding: 0;
+
+        }
+
+        header {
+            background-color: #3f3f3e;
+            color: #fefefe;
+            margin: 0 0 20px 0;
+            height: 40px;
+        }
+
+        .container {
+            padding-left: 15px;
+            padding-right: 15px;
+            maring-left: auto;
+            maring-right: auto;
+        }
+
+        .input {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #3883fa;
+            height: 30px;
+            float: right;
+            padding-left: 5px;
+            margin-top: 3px;
+        }
+
+        #connection input:focus, #connection button:focus {
+            outline: none;
+        }
+
+        .success {
+            background-color: #8bc34a;
+        }
+
+        .warning {
+            background-color: #ffc107;
+        }
+
+        .error {
+            background-color: #ff5722;
+        }
+
+        .error-light {
+            background-color: #ffc4bc;
+        }
+
+        input {
+            font-size: 17px;
+            margin-left: 5px;
+            width: 200px;
+            background: none;
+            height: 30px;
+            border: none;
+            padding: 0;
+        }
+
+        #actions button {
+            width: 100%;
+        }
+
+        button {
+            font-size: 17px;
+            background: #3883fa;
+            height: 30px;
+            border: none;
+            padding: 0 5px;
+        }
+
+        .editor {
+            font-size: 0;
+        }
+
+        .jsoneditor {
+            border: thin solid #3f3f3e;
+        }
+
+        .jsoneditor-menu {
+            background-color: #3f3f3e;
+            border-bottom: 1px solid #3f3f3e;
+        }
+
+        #request, #response {
+            display: inline-block;
+            width: 50%;
+            height: 500px;
+        }
+
+        /* custom bold styling for non-default JSON schema values */
+        .jsoneditor-is-not-default {
+            font-weight: bold;
+        }
+
+        ul#history {
+            font-family: monospace;
+            background-color: #3f3f3e;
+            color: #fefefe;
+            padding: 8px 8px 8px 21px;
+            margin: 0;
+        }
+
+        ul#history li {
+            cursor: pointer;
+            list-style: none;
+            border-bottom: 1px solid #676767;
+        }
+
+        ul#history li:before {
+            content: "\2022";
+            float: left;
+        }
+
+        ul#history li.success-point:before {
+            color: #8bc34a;
+        }
+
+        ul#history li.error-point:before {
+            color: #ff5722;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+        <img src="https://kodi.tv/sites/default/themes/kodi/logo-sbs.svg" alt="Logo kodi" width="100">
+        <div class="input">
+            <label>Kodi URL:<input id="url" type="text" value="ws://localhost:9090/"></label>
+            <button id="connect">Connect</button>
+            <span class="status"></span>
+        </div>
+    </div>
+</header>
+<div id="actions">
+    <button id="send">Send</button>
+</div>
+<div class="editor">
+    <div id="request"></div>
+    <div id="response"></div>
+</div>
+<ul id="history"></ul>
+<script type="text/javascript" src="dist/kodi.umd.js"></script>
+<script>
+    var lastRequest;
+    const sendButton = document.getElementById('send');
+    const connectButton = document.getElementById('connect');
+    const url = document.getElementById('url');
+    const editorRequest = new JSONEditor(document.getElementById('request'), {
+        mode: 'code',
+        modes: ['code', 'text', 'tree', 'preview'],
+    });
+
+    const editorResponse = new JSONEditor(document.getElementById('response'), {
+        mode: 'code',
+        modes: ['text', 'tree', 'preview'],
+        onEditable: (node) => false,// returning false makes the text area read-only
+    });
+    const editorResponseAceContent = editorResponse.container.getElementsByClassName('ace_content')[0];
+
+    const history = document.getElementById('history');
+    history.onclick = ev => {
+        editorRequest.set(JSON.parse(ev.target.textContent));
+    };
+
+    let kodiClient;
+    let connectionUrl;
+
+    function getKodiClient() {
+        if (!kodiClient || url.value !== connectionUrl) {
+            connectionUrl = url.value;
+            kodiClient = Kodi.createClient({
+                // transport: 'http://localhost:8080/jsonrpc',// caution to CORS limitation
+                transport: connectionUrl,
+                cache: false,
+            });
+        }
+        return kodiClient
+    }
+
+    function connect() {
+        connectButton.classList.remove('error');
+        connectButton.classList.add('warning');
+
+        return getKodiClient().connect().then(value => {
+            connectButton.classList.remove('warning');
+            connectButton.classList.add('success');
+            return value;
+        }).catch(error => {
+            connectButton.classList.remove('warning');
+            connectButton.classList.add('error');
+            throw error
+        })
+    }
+
+    async function doRequest() {
+        await connect();
+        sendButton.classList.remove('error');
+        editorResponseAceContent.classList.remove('error-light');
+        sendButton.classList.add('warning');
+        let request = kodiClient.createRequest(JSON.parse(editorRequest.getText()));
+        editorRequest.set(request);
+        const requestString = JSON.stringify(request);
+        let li = document.createElement("li");
+        if (!lastRequest || lastRequest != requestString) {
+            li.innerText = requestString;
+            history.prepend(li);
+            lastRequest = requestString
+        }
+        kodiClient.send(request).then(response => {
+            editorResponse.set(response);
+            sendButton.classList.remove('warning');
+            sendButton.classList.remove('success');
+            if (li) {
+                li.classList.add('success-point')
+            }
+        }).catch(e => {
+            editorResponse.set(e);
+            editorResponseAceContent.classList.add('error-light');
+            sendButton.classList.remove('warning');
+            sendButton.classList.add('error');
+            if (li) {
+                li.classList.add('error-point')
+            }
+        });
+    }
+
+    connectButton.onclick = async function (event) {
+        try {
+            await connect();
+        } catch (e) {
+            console.log("CONNECT ERROR", e);
+        }
+        if (editorRequest.getText() === "{}") {
+            editorRequest.set(kodiClient.createRequest('JSONRPC.Ping'));
+        }
+        await doRequest();
+    };
+
+    sendButton.onclick = async function (event) {
+        editorRequest.repair();
+        await doRequest();
+    };
+</script>
+</body>
+</html>

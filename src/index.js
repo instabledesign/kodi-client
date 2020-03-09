@@ -3,6 +3,7 @@ export {default as ClientRPC} from './KodiClientRPC.js';
 export {default as Client} from './KodiClient.js';
 export {default as Request} from './KodiRequest.js';
 export {default as Response} from './KodiResponse.js';
+export {default as RequestFactory} from './KodiRequestFactory.js';
 
 export {default as WebSocketTransport} from './transport/KodiWebSocketTransport.js';
 export {default as XMLHttpTransport} from './transport/KodiXMLHttpTransport.js';
