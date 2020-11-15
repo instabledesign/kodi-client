@@ -15,30 +15,68 @@ import InMemory from './cache/InMemory.js';
 import LocalStorage from './cache/LocalStorage.js';
 import withTTL from './cache/withTTL.js';
 
-function getCache(options) {
-    return options.cache || window.localStorage ? new LocalStorage('request_') : new InMemory();
-}
+const defaultWebsocketURI = 'ws://{host}:9090';
+const defaultHttpURI = `http://{host}:8080/jsonrpc`;
 
 function getTransport(options) {
-    let uri = options.uri;
-    if (!uri) {
-        uri = window.location;
-        uri = typeof window.WebSocket === 'function' ? `ws://${uri}:9090` : `http://${uri}:8080/jsonrpc`
-    }
+    let transport = options.transport;
 
-    if (null !== (new URL(uri)).protocol.match(/wss?:/)) {
-        return new KodiWebSocketTransport(uri);
+    if (!transport) {
+        transport = typeof window.WebSocket === 'function' ? defaultWebsocketURI : defaultHttpURI;
+        transport = transport.replace('{host}', window.location)
     }
-
-    return new KodiXMLHttpTransport(uri);
+    switch (typeof transport) {
+        case 'object':
+            if (
+                typeof transport.send !== 'function' ||
+                typeof transport.addNotificationListener !== 'function'
+            ) {
+                throw TypeError('Kodi transport object must implement send(request, options), addNotificationListener(listener) function')
+            }
+            return transport;
+        case 'string':
+            let url = '';
+            try {
+                url = new URL(transport);
+            } catch (e) {
+                throw TypeError('Kodi transport string must be a valid path');
+            }
+            if (null !== url.protocol.match(/wss?:/)) {
+                return new KodiWebSocketTransport(url.toString());
+            }
+            return new KodiXMLHttpTransport(url.toString());
+        default:
+            throw TypeError('Kodi transport can be object or url');
+    }
 }
 
-function getCacheMiddleware(options) {
-    return options.cacheMiddleware || CacheMiddleware(withTTL(getCache(options), options.TTL || 10000));
+function getCache(options) {
+    let cache = options.cache;
+    if (typeof cache == 'object') {
+        if (
+            typeof cache.set !== 'function' ||
+            typeof cache.get !== 'function' ||
+            typeof cache.delete !== 'function' ||
+            typeof cache.clear !== 'function'
+        ) {
+            throw TypeError('Kodi cache must implement set(key, value), get(key), delete(key), clear() function')
+        }
+        return cache
+    }
+
+    return window.localStorage ? new LocalStorage('request_') : new InMemory();
 }
 
 function getMiddlewares(options) {
-    return options.middlewares || [LoggingMiddleware, getCacheMiddleware(options)];
+    let middlewares = options.middlewares || [LoggingMiddleware];
+
+    if (options.cache !== false) {
+        middlewares.push(
+            CacheMiddleware(withTTL(getCache(options), options.cacheTTL || 10000))
+        )
+    }
+
+    return middlewares;
 }
 
 function getNotificationMiddlewares(options) {
@@ -51,9 +89,10 @@ export function createClientRPC(options) {
 
 export function createClient(options) {
     const transport = getTransport(options);
-
-    return KodiClient(
-        stack(transport.send, getMiddlewares(options)),
-        stackNotification(transport.addNotificationListener, getNotificationMiddlewares(options))
-    );
+    return new KodiClient({
+        connect: transport.connect,
+        disconnect: transport.disconnect,
+        send: stack(transport.send, getMiddlewares(options)),
+        addNotificationListener: stackNotification(transport.addNotificationListener, getNotificationMiddlewares(options))
+    });
 }

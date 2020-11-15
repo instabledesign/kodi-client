@@ -1,33 +1,39 @@
-import KodiRequest from './KodiRequest.js';
+import KodiRequestFactory from './KodiRequestFactory.js';
 
-function KodiClient(handler, notifier) {
+function KodiClient(transport, options) {
     if (!(this instanceof KodiClient)) {
-        return new KodiClient(handler, notifier);
+        return new KodiClient(transport);
     }
 
+    options = options || {};
     let listeners = [];
 
-    // default factory
-    let factory = (() => {
-        let requestId = 1;
-        return options => new KodiRequest(requestId++, options)
-    })();
+    const factory = options.factory || KodiRequestFactory;
 
-    KodiClient.prototype.factory = newFactory =>  {
-        factory = newFactory;
+    // transport.addNotificationListener((notification, messageEvent) => {
+    //     listeners.forEach(callback => callback(notification, messageEvent));
+    // });
 
-        return this;
+    /**
+     * request(method, params)
+     * request({object})
+     */
+    KodiClient.prototype.createRequest = function () {
+        if (typeof arguments[0] == 'object') {
+            return Object.assign(factory.call(factory, {}), arguments[0]);
+        }
+        return factory.call(factory, {method: arguments[0], params: arguments[1]});
     };
 
-    notifier((notification, messageEvent) => {
-        listeners.forEach(callback => callback(notification, messageEvent));
-    });
+    KodiClient.prototype.connect = transport.connect;
 
-    KodiClient.prototype.send = (request, options) => handler.call(handler, request, options);
+    KodiClient.prototype.disconnect = transport.disconnect;
 
-    KodiClient.prototype.request = (method, params, options) => this.send(factory.call(factory, {method, params}), options);
+    KodiClient.prototype.request = (method, params, options) => this.send(this.createRequest(method, params), options);
 
-    KodiClient.prototype.addNotificationListener = function(listener) {
+    KodiClient.prototype.send = (request, options) => transport.send(request, options);
+
+    KodiClient.prototype.addNotificationListener = function (listener) {
         const index = listeners.push(listener);
 
         return () => {
@@ -35,7 +41,7 @@ function KodiClient(handler, notifier) {
         };
     };
 
-    KodiClient.prototype.removeNotificationListener = function(listener) {
+    KodiClient.prototype.removeNotificationListener = function (listener) {
         listeners = listeners.filter(currentListener => currentListener === listener);
     };
 }

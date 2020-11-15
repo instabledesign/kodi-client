@@ -18,7 +18,7 @@ describe('Testing KodiClient', function () {
 
         let kodiClient = KodiClient(fakeTransport.send);
 
-        expect(kodiClient.request('fake_request', 'fake_params', 'fake_options')).toEqual('fake_handler_return');
+        expect(kodiClient.call('fake_request', 'fake_params', 'fake_options')).toEqual('fake_handler_return');
         expect(fakeTransport.send).toHaveBeenCalledWith(KodiRequest(1, { method: 'fake_request', params: 'fake_params' }), 'fake_options');
     });
 
@@ -31,7 +31,7 @@ describe('Testing KodiClient', function () {
 
         let kodiClient = KodiClient(fakeTransport.send).factory(fakeFactory.create);
 
-        expect(kodiClient.request('fake_request', 'fake_params', 'fake_options')).toEqual('fake_handler_return');
+        expect(kodiClient.call('fake_request', 'fake_params', 'fake_options')).toEqual('fake_handler_return');
         expect(fakeTransport.send).toHaveBeenCalledWith('fake_factory_return', 'fake_options');
     });
 });

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="dist/kodi.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.2/min/vs/loader.min.js"
+            integrity="sha512-dx6A3eMO/vvLembE8xNGc3RKUytoTIX3rNO5uMEhzhqnXYx1X5XYmjfZP7vxYv7x3gBhdj7Pgys8DUjdbDaLAA=="
+            crossorigin="anonymous"></script>
+    <style type="text/css">
+        body {
+            font: 11pt sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #3f3f3e;
+            color: #fefefe;
+            /*margin: 0 0 20px 0;*/
+            height: 40px;
+        }
+
+        input {
+            font-size: 17px;
+            margin-left: 5px;
+            width: 200px;
+            background: none;
+            height: 30px;
+            border: none;
+            padding: 0;
+        }
+
+        button {
+            font-size: 17px;
+            background: #3883fa;
+            height: 30px;
+            border: none;
+            padding: 0 5px;
+        }
+
+        .container {
+            padding-left: 15px;
+            padding-right: 15px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .input {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #3883fa;
+            height: 30px;
+            float: right;
+            padding-left: 5px;
+            margin-top: 3px;
+        }
+
+        #connection input:focus, #connection button:focus {
+            outline: none;
+        }
+
+        .success {
+            background-color: #8bc34a;
+        }
+
+        .warning {
+            background-color: #ffc107;
+        }
+
+        .error {
+            background-color: #ff2a16;
+        }
+
+        .ace_editor .error {
+            background-color: #f9c0c0;
+        }
+
+        .ace_dark .error {
+            background-color: #961b0a;
+        }
+
+        #actions button {
+            width: 100%;
+        }
+
+        .editor {
+            font-size: 0;
+        }
+
+        #request, #response {
+            display: inline-block;
+            width: 50%;
+            height: 500px;
+        }
+
+        ul#history {
+            font-family: monospace;
+            background-color: #3f3f3e;
+            color: #fefefe;
+            padding: 8px 8px 8px 21px;
+            margin: 0;
+        }
+
+        ul#history li {
+            cursor: pointer;
+            list-style: none;
+            border-bottom: 1px solid #676767;
+        }
+
+        ul#history li:before {
+            content: "\2022";
+            float: left;
+        }
+
+        ul#history li.success-point:before {
+            color: #8bc34a;
+        }
+
+        ul#history li.error-point:before {
+            color: #ff5722;
+        }
+    </style>
+
+</head>
+<body>
+<header>
+    <div class="container">
+        <img src="https://kodi.tv/sites/default/themes/kodi/logo-sbs.svg" alt="Logo kodi" width="100">
+        <div class="input">
+            <label>Kodi URL:<input id="url" type="text" value="ws://localhost:9090/"></label>
+            <button id="connect">Connect</button>
+            <span class="status"></span>
+        </div>
+    </div>
+</header>
+<div class="editor">
+    <div id="request"></div>
+    <div id="response"></div>
+</div>
+<div id="actions">
+    <button id="send">Send</button>
+</div>
+<ul id="history"></ul>
+
+<script>
+    var editor;
+    var editorResponse;
+    require.config({paths: {vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.2/min/vs'}});
+    require(['vs/editor/editor.main'], function () {
+
+        editor = monaco.editor.create(document.getElementById("request"), {
+            language: 'json',
+            readOnly: false,
+            theme: "vs-dark",
+        });
+
+        editorResponse = monaco.editor.create(document.getElementById("response"), {
+            language: 'json',
+            readOnly: true,
+            theme: "vs-dark",
+        });
+    });
+
+    const history = document.getElementById('history');
+    history.onclick = ev => {
+        editorRequest.setValue(JSON.stringify(JSON.parse(ev.target.textContent), null, '\t'), 1);
+    };
+
+    // ######################################################################
+    // ######################################################################
+    // ######################################################################
+    // ######################################################################
+    // KODI PART
+    let lastRequest;
+    const sendButton = document.getElementById('send');
+    const connectButton = document.getElementById('connect');
+    const url = document.getElementById('url');
+
+    let kodiClient;
+    let connectionUrl;
+
+    function getKodiClient() {
+        if (!kodiClient || url.value !== connectionUrl) {
+            connectionUrl = url.value;
+            kodiClient = Kodi.createClient({
+                // transport: 'http://localhost:8080/jsonrpc',// caution to CORS limitation
+                transport: connectionUrl,
+                cache: false,
+            });
+        }
+        return kodiClient
+    }
+
+    function connect() {
+        connectButton.classList.remove('error');
+        connectButton.classList.add('warning');
+
+        return getKodiClient().connect().then(value => {
+            connectButton.classList.remove('warning');
+            connectButton.classList.add('success');
+            return value;
+        }).catch(error => {
+            connectButton.classList.remove('warning');
+            connectButton.classList.add('error');
+            throw error
+        })
+    }
+
+    async function doRequest() {
+        await connect();
+        sendButton.classList.remove('error');
+        // editorResponseAceContent.classList.remove('error');
+        sendButton.classList.add('warning');
+        let request = kodiClient.createRequest(JSON.parse(editor.getValue()));
+        editor.setValue(JSON.stringify(request, null, '\t'), 1);
+        const requestString = JSON.stringify(request);
+        let li = document.createElement("li");
+        if (!lastRequest || lastRequest != requestString) {
+            li.innerText = requestString;
+            history.prepend(li);
+            lastRequest = requestString
+        }
+        kodiClient.send(request).then(response => {
+            editorResponse.setValue(JSON.stringify(response, null, '\t'), 1);
+            sendButton.classList.remove('warning');
+            sendButton.classList.remove('success');
+            if (li) {
+                li.classList.add('success-point')
+            }
+        }).catch(e => {
+            editorResponse.setValue(JSON.stringify(e, null, '\t'), 1);
+            // editorResponseAceContent.classList.add('error');
+            sendButton.classList.remove('warning');
+            sendButton.classList.add('error');
+            if (li) {
+                li.classList.add('error-point')
+            }
+        });
+    }
+
+    connectButton.onclick = async function (event) {
+        try {
+            await connect();
+        } catch (e) {
+            alert("Unable to connect to Kodi");
+            console.log("CONNECT ERROR", e);
+            return
+        }
+        if (editor.getValue() === "") {
+            editor.setValue(JSON.stringify(kodiClient.createRequest('JSONRPC.Ping'), null, '\t'), 1);
+        }
+        await doRequest();
+    };
+
+    sendButton.onclick = async function (event) {
+        await doRequest();
+    };
+
+</script>
+</body>
+</html>

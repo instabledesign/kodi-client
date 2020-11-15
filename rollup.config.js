@@ -1,5 +1,10 @@
-import resolve from 'rollup-plugin-node-resolve';
-import commonjs from 'rollup-plugin-commonjs';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import {terser} from 'rollup-plugin-terser';
+
+import * as meta from "./package.json";
+
+const copyright = `// ${meta.homepage} v${meta.version} Copyright ${(new Date).getFullYear()} ${meta.author}`;
 
 export default [
     {
@@ -12,7 +17,21 @@ export default [
         },
         plugins: [
             resolve(),
-            commonjs()
+            commonjs(),
+        ]
+    },
+    {
+        input: 'src/index.js',
+        output: {
+            file: 'dist/kodi.umd.min.js',
+            format: 'umd',
+            name: 'Kodi',
+            sourcemap: true
+        },
+        plugins: [
+            resolve(),
+            commonjs(),
+            terser({output: {preamble: copyright}}),
         ]
     },
     {
@@ -23,13 +42,4 @@ export default [
             {file: 'dist/kodi.esm.js', format: 'es'}
         ]
     }
-    // {
-    //     input: 'src/index2.js',
-    //     output: {
-    //         file: 'dist/kodi2.js',
-    //         format: 'umd',
-    //         name: 'Kodi',
-    //         sourcemap: true
-    //     },
-    // },
 ];

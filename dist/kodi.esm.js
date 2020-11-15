@@ -1,3 +1,5 @@
+import TransportError from 'KodiTransportError.js';
+
 const JSONRPC_VERSION = '2.0';
 
 function KodiRequest(id, options) {
@@ -27,34 +29,45 @@ KodiRequest.prototype.toJson = function() {
     });
 };
 
-function KodiClient(handler, notifier) {
+var KodiRequestFactory = (function () {
+    let requestId = 1;
+    return options => new KodiRequest(requestId++, options)
+})();
+
+function KodiClient(transport, options) {
     if (!(this instanceof KodiClient)) {
-        return new KodiClient(handler, notifier);
+        return new KodiClient(transport);
     }
 
+    options = options || {};
     let listeners = [];
 
-    // default factory
-    let factory = (() => {
-        let requestId = 1;
-        return options => new KodiRequest(requestId++, options)
-    })();
+    const factory = options.factory || KodiRequestFactory;
 
-    KodiClient.prototype.factory = newFactory =>  {
-        factory = newFactory;
+    // transport.addNotificationListener((notification, messageEvent) => {
+    //     listeners.forEach(callback => callback(notification, messageEvent));
+    // });
 
-        return this;
+    /**
+     * request(method, params)
+     * request({object})
+     */
+    KodiClient.prototype.createRequest = function () {
+        if (typeof arguments[0] == 'object') {
+            return Object.assign(factory.call(factory, {}), arguments[0]);
+        }
+        return factory.call(factory, {method: arguments[0], params: arguments[1]});
     };
 
-    notifier((notification, messageEvent) => {
-        listeners.forEach(callback => callback(notification, messageEvent));
-    });
+    KodiClient.prototype.connect = transport.connect;
 
-    KodiClient.prototype.send = (request, options) => handler.call(handler, request, options);
+    KodiClient.prototype.disconnect = transport.disconnect;
 
-    KodiClient.prototype.request = (method, params, options) => this.send(factory.call(factory, {method, params}), options);
+    KodiClient.prototype.request = (method, params, options) => this.send(this.createRequest(method, params), options);
 
-    KodiClient.prototype.addNotificationListener = function(listener) {
+    KodiClient.prototype.send = (request, options) => transport.send(request, options);
+
+    KodiClient.prototype.addNotificationListener = function (listener) {
         const index = listeners.push(listener);
 
         return () => {
@@ -62,7 +75,7 @@ function KodiClient(handler, notifier) {
         };
     };
 
-    KodiClient.prototype.removeNotificationListener = function(listener) {
+    KodiClient.prototype.removeNotificationListener = function (listener) {
         listeners = listeners.filter(currentListener => currentListener === listener);
     };
 }
@@ -79,8 +92,13 @@ function KodiClientRPC(kodiClient) {
     let schema = null;
     let listeners = {};
 
+    this.getClient = () => kodiClient;
     this.onReady = new Promise((resolve, reject) => {
-        kodiClient.request('JSONRPC.Introspect', {"getdescriptions": true, "getmetadata": true, "filterbytransport": true}).then(data => {
+        kodiClient.request('JSONRPC.Introspect', {
+            "getdescriptions": true,
+            "getmetadata": true,
+            "filterbytransport": true
+        }).then(data => {
             schema = data.result;
 
             const methods = schema.methods;
@@ -117,6 +135,15 @@ function KodiClientRPC(kodiClient) {
 
         }).catch(reject);
     });
+    KodiClientRPC.prototype.createRequest = kodiClient.createRequest;
+    KodiClientRPC.prototype.connect = () => {
+        return kodiClient.connect();
+    };
+    KodiClientRPC.prototype.disconnect = kodiClient.disconnect;
+    KodiClientRPC.prototype.request = kodiClient.request;
+    KodiClientRPC.prototype.send = kodiClient.send;
+    KodiClientRPC.prototype.addNotificationListener = kodiClient.addNotificationListener;
+    KodiClientRPC.prototype.removeNotificationListener = kodiClient.removeNotificationListener;
 }
 
 function KodiNotification(data) {
@@ -147,19 +174,32 @@ function KodiWebSocketTransport(uri) {
     let deferreds = {};
     let listeners = [];
     let websocket;
-    let onReady = this.onReady = new Promise((resolve, reject) => {
-        websocket = new WebSocket(uri);
-        websocket.onerror = reject;
-        websocket.onopen = function(event) {
-            this.onmessage = messageEvent => {
-                const messageData = JSON.parse(messageEvent.data);
+    let onReady;
+
+    KodiWebSocketTransport.prototype.connect = () => {
+        if (onReady) {
+            return onReady
+        }
+        onReady = new Promise((resolve, reject) => {
+            websocket = new WebSocket(uri);
+
+            websocket.onopen = () => resolve(websocket);
+
+            websocket.onerror = event => {
+                if (websocket.readyState == 1) {
+                    console.error(event);
+                }
+            };
+
+            websocket.onmessage = event => {
+                const messageData = JSON.parse(event.data);
                 if (null === messageData.id) {
-                    console.error(messageEvent);
+                    console.error(event);
 
                     return;
                 }
                 if (messageData.id) {
-                    const response = new KodiResponse(messageData);
+                    const response = new Kodi.Response(messageData);
                     response.error ?
                         deferreds[response.id].deferredReject(response) :
                         deferreds[response.id].deferredResolve(response);
@@ -168,36 +208,37 @@ function KodiWebSocketTransport(uri) {
                 }
 
                 const notification = new KodiNotification(messageData);
-                listeners.forEach(callback => callback(notification, messageEvent));
+                listeners.forEach(callback => callback(notification, event));
             };
-            resolve(event);
-        };
-    });
 
-    KodiWebSocketTransport.prototype.send = function(request, options) {
+            websocket.onclose = event => {
+                websocket = null;
+                if (event.code != 3001) {
+                    reject(event);
+                }
+            };
+        });
+
+        return onReady;
+    };
+
+    KodiWebSocketTransport.prototype.send = (request, options) => {
         if (!request.id) {
             throw new TypeError('Request id is require.');
         }
-
-        let deferredResolve;
-        let deferredReject;
-        const promise = new Promise(function(resolve, reject) {
-            deferredResolve = resolve;
-            deferredReject = reject;
+        let transport = this;
+        return new Promise(function (resolve, reject) {
+            deferreds[request.id] = {promise: this, deferredResolve: resolve, deferredReject: reject};
 
             try {
-                onReady.then(() => websocket.send(request.toJson()));
+                transport.connect().then(() => websocket.send(request.toJson()));
             } catch (error) {
-                deferredReject(new KodiResponse({message: 'An error occured during sending message.', error: error}));
+                reject(new KodiResponse({message: 'An error occured during sending message.', error: error}));
             }
         });
-
-        deferreds[request.id] = { promise, deferredResolve, deferredReject };
-
-        return promise;
     };
 
-    KodiWebSocketTransport.prototype.addNotificationListener = function(listener) {
+    KodiWebSocketTransport.prototype.addNotificationListener = listener => {
         const index = listeners.push(listener);
 
         return () => {
@@ -205,8 +246,14 @@ function KodiWebSocketTransport(uri) {
         };
     };
 
-    KodiWebSocketTransport.prototype.removeNotificationListener = function(listener) {
+    KodiWebSocketTransport.prototype.removeNotificationListener = listener => {
         listeners = listeners.filter(currentListener => currentListener === listener);
+    };
+
+    KodiWebSocketTransport.prototype.disconnect = () => {
+        if (websocket) {
+            websocket.close(3001);
+        }
     };
 }
 
@@ -215,26 +262,37 @@ function KodiXMLHttpTransport(uri) {
         return new KodiXMLHttpTransport(uri);
     }
 
+    KodiXMLHttpTransport.prototype.connect = async () => this;
+
     KodiXMLHttpTransport.prototype.send = function (request, options) {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
-            req.onreadystatechange = function(event) {
+            req.onreadystatechange = function (event) {
                 if (this.readyState === XMLHttpRequest.DONE) {
                     if (this.status === 200) {
                         const response = new KodiResponse(JSON.parse(this.responseText));
                         response.error ? reject(response) : resolve(response);
                     } else {
-                        reject(new KodiResponse({message: this.statusText, error: this}));
+                        let e = new TransportError('XHR Error' + this.statusText, event);
+                        reject(new KodiResponse({message: e.message, error: e}));
                     }
                 }
             };
-
+            req.onerror = function (event) {
+                let e = new TransportError('XHR Error' + this.statusText, event);
+                reject(new KodiResponse({message: e.message, error: e}));
+            };
             req.open('GET', uri + '?request=' + request.toJson(), true);
             req.send(null);
         });
     };
 
-    KodiXMLHttpTransport.prototype.addNotifiable = function (request, options) {};
+    KodiXMLHttpTransport.prototype.addNotificationListener = function (listener) {
+        console.warn('Notification for KodiXMLHttpTransport is not implemented yet');
+    };
+
+    KodiXMLHttpTransport.prototype.close = function () {
+    };
 }
 
 var LoggingNotificationMiddleware = handler => (notification, messageEvent) => {
@@ -243,12 +301,17 @@ var LoggingNotificationMiddleware = handler => (notification, messageEvent) => {
     handler(notification, messageEvent);
 };
 
-var stackNotification = (notifier, middlewares) => handler => notifier(
-    middlewares.reverse().reduce(
-        (prev, cur) => null === prev ? cur : cur(prev),
-        handler
-    )
-);
+var stackNotification = (notifier, middlewares) => handler => {
+    if (!middlewares) {
+        return notifier(handler);
+    }
+    return notifier(
+        middlewares.reverse().reduce(
+            (prev, cur) => null === prev ? cur : cur(prev),
+            handler
+        )
+    );
+};
 
 var LoggingMiddleware = handler => (request, options) => {
     console.log('Request %o', request);
@@ -295,10 +358,15 @@ var CacheMiddleware = cache => handler => (request, options) => {
     });
 };
 
-var stack = (handler, middlewares) => middlewares.reverse().reduce(
-    (prev, cur) => null === prev ? cur : cur(prev),
-    handler
-);
+var stack = (handler, middlewares) => {
+    if (!middlewares) {
+        return handler;
+    }
+    return middlewares.reverse().reduce(
+        (prev, cur) => null === prev ? cur : cur(prev),
+        handler
+    );
+};
 
 function InMemory(restoreData) {
     if (!(this instanceof InMemory)) {
@@ -360,30 +428,68 @@ function withTTL(cache, TTL) {
     };
 }
 
-function getCache(options) {
-    return options.cache || window.localStorage ? new LocalStorage('request_') : new InMemory();
-}
+const defaultWebsocketURI = 'ws://{host}:9090';
+const defaultHttpURI = `http://{host}:8080/jsonrpc`;
 
 function getTransport(options) {
-    let uri = options.uri;
-    if (!uri) {
-        uri = window.location;
-        uri = typeof window.WebSocket === 'function' ? `ws://${uri}:9090` : `http://${uri}:8080/jsonrpc`;
-    }
+    let transport = options.transport;
 
-    if (null !== (new URL(uri)).protocol.match(/wss?:/)) {
-        return new KodiWebSocketTransport(uri);
+    if (!transport) {
+        transport = typeof window.WebSocket === 'function' ? defaultWebsocketURI : defaultHttpURI;
+        transport = transport.replace('{host}', window.location);
     }
-
-    return new KodiXMLHttpTransport(uri);
+    switch (typeof transport) {
+        case 'object':
+            if (
+                typeof transport.send !== 'function' ||
+                typeof transport.addNotificationListener !== 'function'
+            ) {
+                throw TypeError('Kodi transport object must implement send(request, options), addNotificationListener(listener) function')
+            }
+            return transport;
+        case 'string':
+            let url = '';
+            try {
+                url = new URL(transport);
+            } catch (e) {
+                throw TypeError('Kodi transport string must be a valid path');
+            }
+            if (null !== url.protocol.match(/wss?:/)) {
+                return new KodiWebSocketTransport(url.toString());
+            }
+            return new KodiXMLHttpTransport(url.toString());
+        default:
+            throw TypeError('Kodi transport can be object or url');
+    }
 }
 
-function getCacheMiddleware(options) {
-    return options.cacheMiddleware || CacheMiddleware(withTTL(getCache(options), options.TTL || 10000));
+function getCache(options) {
+    let cache = options.cache;
+    if (typeof cache == 'object') {
+        if (
+            typeof cache.set !== 'function' ||
+            typeof cache.get !== 'function' ||
+            typeof cache.delete !== 'function' ||
+            typeof cache.clear !== 'function'
+        ) {
+            throw TypeError('Kodi cache must implement set(key, value), get(key), delete(key), clear() function')
+        }
+        return cache
+    }
+
+    return window.localStorage ? new LocalStorage('request_') : new InMemory();
 }
 
 function getMiddlewares(options) {
-    return options.middlewares || [LoggingMiddleware, getCacheMiddleware(options)];
+    let middlewares = options.middlewares || [LoggingMiddleware];
+
+    if (options.cache !== false) {
+        middlewares.push(
+            CacheMiddleware(withTTL(getCache(options), options.cacheTTL || 10000))
+        );
+    }
+
+    return middlewares;
 }
 
 function getNotificationMiddlewares(options) {
@@ -396,11 +502,12 @@ function createClientRPC(options) {
 
 function createClient(options) {
     const transport = getTransport(options);
-
-    return KodiClient(
-        stack(transport.send, getMiddlewares(options)),
-        stackNotification(transport.addNotificationListener, getNotificationMiddlewares(options))
-    );
+    return new KodiClient({
+        connect: transport.connect,
+        disconnect: transport.disconnect,
+        send: stack(transport.send, getMiddlewares(options)),
+        addNotificationListener: stackNotification(transport.addNotificationListener, getNotificationMiddlewares(options))
+    });
 }
 
-export { createClient, createClientRPC, KodiClientRPC as ClientRPC, KodiClient as Client, KodiRequest as Request, KodiResponse as Response, KodiWebSocketTransport as WebSocketTransport, KodiXMLHttpTransport as XMLHttpTransport, InMemory, LocalStorage, withTTL, LoggingNotificationMiddleware as notificationMiddlewareLogging, stackNotification as notificationStackMiddleware, CacheMiddleware as requestMiddlewareCache, LoggingMiddleware as requestMiddlewareLogging, stack as requestReuestMiddleware };
+export { KodiClient as Client, KodiClientRPC as ClientRPC, InMemory, LocalStorage, KodiRequest as Request, KodiRequestFactory as RequestFactory, KodiResponse as Response, KodiWebSocketTransport as WebSocketTransport, KodiXMLHttpTransport as XMLHttpTransport, createClient, createClientRPC, LoggingNotificationMiddleware as notificationMiddlewareLogging, stackNotification as notificationStackMiddleware, CacheMiddleware as requestMiddlewareCache, LoggingMiddleware as requestMiddlewareLogging, stack as requestReuestMiddleware, withTTL };
