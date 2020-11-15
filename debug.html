@@ -1,31 +1,49 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>JSONEditor | JSON schema validation</title>
-
-    <link href="node_modules/jsoneditor/dist/jsoneditor.css" rel="stylesheet" type="text/css">
-    <script src="node_modules/jsoneditor/dist/jsoneditor.js"></script>
-
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="dist/kodi.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.2/min/vs/loader.min.js"
+            integrity="sha512-dx6A3eMO/vvLembE8xNGc3RKUytoTIX3rNO5uMEhzhqnXYx1X5XYmjfZP7vxYv7x3gBhdj7Pgys8DUjdbDaLAA=="
+            crossorigin="anonymous"></script>
     <style type="text/css">
         body {
             font: 11pt sans-serif;
             margin: 0;
             padding: 0;
-
         }
 
         header {
             background-color: #3f3f3e;
             color: #fefefe;
-            margin: 0 0 20px 0;
+            /*margin: 0 0 20px 0;*/
             height: 40px;
+        }
+
+        input {
+            font-size: 17px;
+            margin-left: 5px;
+            width: 200px;
+            background: none;
+            height: 30px;
+            border: none;
+            padding: 0;
+        }
+
+        button {
+            font-size: 17px;
+            background: #3883fa;
+            height: 30px;
+            border: none;
+            padding: 0 5px;
         }
 
         .container {
             padding-left: 15px;
             padding-right: 15px;
-            maring-left: auto;
-            maring-right: auto;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .input {
@@ -51,57 +69,29 @@
         }
 
         .error {
-            background-color: #ff5722;
+            background-color: #ff2a16;
         }
 
-        .error-light {
-            background-color: #ffc4bc;
+        .ace_editor .error {
+            background-color: #f9c0c0;
         }
 
-        input {
-            font-size: 17px;
-            margin-left: 5px;
-            width: 200px;
-            background: none;
-            height: 30px;
-            border: none;
-            padding: 0;
+        .ace_dark .error {
+            background-color: #961b0a;
         }
 
         #actions button {
             width: 100%;
         }
 
-        button {
-            font-size: 17px;
-            background: #3883fa;
-            height: 30px;
-            border: none;
-            padding: 0 5px;
-        }
-
         .editor {
             font-size: 0;
-        }
-
-        .jsoneditor {
-            border: thin solid #3f3f3e;
-        }
-
-        .jsoneditor-menu {
-            background-color: #3f3f3e;
-            border-bottom: 1px solid #3f3f3e;
         }
 
         #request, #response {
             display: inline-block;
             width: 50%;
             height: 500px;
-        }
-
-        /* custom bold styling for non-default JSON schema values */
-        .jsoneditor-is-not-default {
-            font-weight: bold;
         }
 
         ul#history {
@@ -131,6 +121,7 @@
             color: #ff5722;
         }
     </style>
+
 </head>
 <body>
 <header>
@@ -143,36 +134,48 @@
         </div>
     </div>
 </header>
-<div id="actions">
-    <button id="send">Send</button>
-</div>
 <div class="editor">
     <div id="request"></div>
     <div id="response"></div>
 </div>
+<div id="actions">
+    <button id="send">Send</button>
+</div>
 <ul id="history"></ul>
-<script type="text/javascript" src="dist/kodi.umd.js"></script>
-<script>
-    var lastRequest;
-    const sendButton = document.getElementById('send');
-    const connectButton = document.getElementById('connect');
-    const url = document.getElementById('url');
-    const editorRequest = new JSONEditor(document.getElementById('request'), {
-        mode: 'code',
-        modes: ['code', 'text', 'tree', 'preview'],
-    });
 
-    const editorResponse = new JSONEditor(document.getElementById('response'), {
-        mode: 'code',
-        modes: ['text', 'tree', 'preview'],
-        onEditable: (node) => false,// returning false makes the text area read-only
+<script>
+    var editor;
+    var editorResponse;
+    require.config({paths: {vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.2/min/vs'}});
+    require(['vs/editor/editor.main'], function () {
+
+        editor = monaco.editor.create(document.getElementById("request"), {
+            language: 'json',
+            readOnly: false,
+            theme: "vs-dark",
+        });
+
+        editorResponse = monaco.editor.create(document.getElementById("response"), {
+            language: 'json',
+            readOnly: true,
+            theme: "vs-dark",
+        });
     });
-    const editorResponseAceContent = editorResponse.container.getElementsByClassName('ace_content')[0];
 
     const history = document.getElementById('history');
     history.onclick = ev => {
-        editorRequest.set(JSON.parse(ev.target.textContent));
+        editorRequest.setValue(JSON.stringify(JSON.parse(ev.target.textContent), null, '\t'), 1);
     };
+
+    // ######################################################################
+    // ######################################################################
+    // ######################################################################
+    // ######################################################################
+    // KODI PART
+    let lastRequest;
+    const sendButton = document.getElementById('send');
+    const connectButton = document.getElementById('connect');
+    const url = document.getElementById('url');
 
     let kodiClient;
     let connectionUrl;
@@ -207,10 +210,10 @@
     async function doRequest() {
         await connect();
         sendButton.classList.remove('error');
-        editorResponseAceContent.classList.remove('error-light');
+        // editorResponseAceContent.classList.remove('error');
         sendButton.classList.add('warning');
-        let request = kodiClient.createRequest(JSON.parse(editorRequest.getText()));
-        editorRequest.set(request);
+        let request = kodiClient.createRequest(JSON.parse(editor.getValue()));
+        editor.setValue(JSON.stringify(request, null, '\t'), 1);
         const requestString = JSON.stringify(request);
         let li = document.createElement("li");
         if (!lastRequest || lastRequest != requestString) {
@@ -219,15 +222,15 @@
             lastRequest = requestString
         }
         kodiClient.send(request).then(response => {
-            editorResponse.set(response);
+            editorResponse.setValue(JSON.stringify(response, null, '\t'), 1);
             sendButton.classList.remove('warning');
             sendButton.classList.remove('success');
             if (li) {
                 li.classList.add('success-point')
             }
         }).catch(e => {
-            editorResponse.set(e);
-            editorResponseAceContent.classList.add('error-light');
+            editorResponse.setValue(JSON.stringify(e, null, '\t'), 1);
+            // editorResponseAceContent.classList.add('error');
             sendButton.classList.remove('warning');
             sendButton.classList.add('error');
             if (li) {
@@ -240,18 +243,20 @@
         try {
             await connect();
         } catch (e) {
+            alert("Unable to connect to Kodi");
             console.log("CONNECT ERROR", e);
+            return
         }
-        if (editorRequest.getText() === "{}") {
-            editorRequest.set(kodiClient.createRequest('JSONRPC.Ping'));
+        if (editor.getValue() === "") {
+            editor.setValue(JSON.stringify(kodiClient.createRequest('JSONRPC.Ping'), null, '\t'), 1);
         }
         await doRequest();
     };
 
     sendButton.onclick = async function (event) {
-        editorRequest.repair();
         await doRequest();
     };
+
 </script>
 </body>
 </html>

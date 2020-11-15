@@ -4,7 +4,7 @@
     (global = global || self, factory(global.Kodi = {}, global.TransportError));
 }(this, (function (exports, TransportError) { 'use strict';
 
-    TransportError = TransportError && TransportError.hasOwnProperty('default') ? TransportError['default'] : TransportError;
+    TransportError = TransportError && Object.prototype.hasOwnProperty.call(TransportError, 'default') ? TransportError['default'] : TransportError;
 
     const JSONRPC_VERSION = '2.0';
 
@@ -100,7 +100,11 @@
 
         this.getClient = () => kodiClient;
         this.onReady = new Promise((resolve, reject) => {
-            kodiClient.request('JSONRPC.Introspect', {"getdescriptions": true, "getmetadata": true, "filterbytransport": true}).then(data => {
+            kodiClient.request('JSONRPC.Introspect', {
+                "getdescriptions": true,
+                "getmetadata": true,
+                "filterbytransport": true
+            }).then(data => {
                 schema = data.result;
 
                 const methods = schema.methods;
@@ -137,6 +141,15 @@
 
             }).catch(reject);
         });
+        KodiClientRPC.prototype.createRequest = kodiClient.createRequest;
+        KodiClientRPC.prototype.connect = () => {
+            return kodiClient.connect();
+        };
+        KodiClientRPC.prototype.disconnect = kodiClient.disconnect;
+        KodiClientRPC.prototype.request = kodiClient.request;
+        KodiClientRPC.prototype.send = kodiClient.send;
+        KodiClientRPC.prototype.addNotificationListener = kodiClient.addNotificationListener;
+        KodiClientRPC.prototype.removeNotificationListener = kodiClient.removeNotificationListener;
     }
 
     function KodiNotification(data) {
