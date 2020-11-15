@@ -4,7 +4,7 @@ import {terser} from 'rollup-plugin-terser';
 
 import * as meta from "./package.json";
 
-const copyright = `// ${meta.homepage} v${meta.version} Copyright ${(new Date).getFullYear()} ${meta.author.name}`;
+const copyright = `// ${meta.homepage} v${meta.version} Copyright ${(new Date).getFullYear()} ${meta.author}`;
 
 export default [
     {
